@@ -126,9 +126,7 @@ ul {
   flex: 1;
   min-width: 0;
   height: 100vh;
-  overflow-y: auto;
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
+  overflow-y: hidden;
   padding: 0;
   /* Hide scrollbar */
   scrollbar-width: none;
@@ -348,8 +346,6 @@ ul {
    ======================================== */
 .section {
   height: 100vh;
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
   position: relative;
   padding: 4rem 3rem 3rem 2.5rem;
   overflow-y: auto;
@@ -364,17 +360,11 @@ ul {
   display: none;
 }
 
-/* Short sections: center content vertically */
-#about,
-#skills,
-#education {
-  justify-content: center;
-}
-
-/* Long sections: start from top */
-#experience,
-#projects {
-  justify-content: flex-start;
+/* Flex spacers: center content when short, collapse when overflow */
+.section::before,
+.section::after {
+  content: '';
+  flex: 1 1 0;
 }
 
 .section-header-mobile {
@@ -863,17 +853,19 @@ ul {
   .right-panel {
     height: auto;
     overflow-y: visible;
-    scroll-snap-type: none;
     padding: 1rem 1.5rem 2rem;
     scrollbar-width: auto;
   }
 
   .section {
     height: auto;
-    scroll-snap-align: none;
-    scroll-snap-stop: normal;
     overflow-y: visible;
     padding: 2rem 0;
+  }
+
+  .section::before,
+  .section::after {
+    display: none;
   }
 
   .section-header-mobile {
