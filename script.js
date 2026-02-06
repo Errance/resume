@@ -133,78 +133,86 @@ if (document.readyState === 'loading') {
 })();
 
 /* ========================================
-   Scroll Fade-in Animation
+   Section-based Animations
+   (fade-in + tag cascade triggered per active page)
    ======================================== */
 (function () {
   var scrollContainer = document.querySelector('.right-panel');
-  var items = document.querySelectorAll(
+  var sections = document.querySelectorAll('.section');
+
+  if (!scrollContainer || !sections.length) return;
+
+  // Prepare fade-in elements (hidden initially)
+  var allFadeItems = document.querySelectorAll(
     '.exp-item, .project-card, .strength-card, .skills-group, .edu-item'
   );
-
-  if (!items.length) return;
-
-  items.forEach(function (item, index) {
+  allFadeItems.forEach(function (item) {
     item.classList.add('fade-in');
-    item.style.transitionDelay = (index % 6) * 0.06 + 's';
   });
 
-  var observer = new IntersectionObserver(
-    function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          entry.target.classList.add('visible');
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    {
-      root: scrollContainer,
-      rootMargin: '0px 0px -40px 0px',
-      threshold: 0.1,
-    }
-  );
-
-  items.forEach(function (item) {
-    observer.observe(item);
-  });
-})();
-
-/* ========================================
-   Tag Cascade Animation
-   ======================================== */
-(function () {
-  var scrollContainer = document.querySelector('.right-panel');
-  var tagContainers = document.querySelectorAll(
+  // Prepare tags (hidden initially)
+  var allTagContainers = document.querySelectorAll(
     '.exp-tags, .project-tags, .skills-tags'
   );
-
-  if (!tagContainers.length) return;
-
-  var observer = new IntersectionObserver(
-    function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          var tags = entry.target.querySelectorAll('.tag');
-          tags.forEach(function (tag, i) {
-            tag.classList.add('animate');
-            tag.style.animationDelay = i * 0.05 + 's';
-          });
-          observer.unobserve(entry.target);
-        }
-      });
-    },
-    {
-      root: scrollContainer,
-      rootMargin: '0px 0px -20px 0px',
-      threshold: 0.2,
-    }
-  );
-
-  tagContainers.forEach(function (container) {
+  allTagContainers.forEach(function (container) {
     container.querySelectorAll('.tag').forEach(function (tag) {
       tag.style.opacity = '0';
     });
-    observer.observe(container);
+  });
+
+  // Track which sections have been activated
+  var activatedSections = {};
+
+  function activateSection(index) {
+    if (activatedSections[index]) return;
+    activatedSections[index] = true;
+
+    var section = sections[index];
+    if (!section) return;
+
+    // Trigger fade-in for all items in this section
+    var fadeItems = section.querySelectorAll('.fade-in');
+    fadeItems.forEach(function (item, i) {
+      item.style.transitionDelay = i * 0.06 + 's';
+      setTimeout(function () {
+        item.classList.add('visible');
+      }, 80);
+    });
+
+    // Trigger tag cascade for all tag containers in this section
+    var tagContainers = section.querySelectorAll(
+      '.exp-tags, .project-tags, .skills-tags'
+    );
+    tagContainers.forEach(function (container) {
+      var tags = container.querySelectorAll('.tag');
+      tags.forEach(function (tag, i) {
+        tag.classList.add('animate');
+        tag.style.animationDelay = i * 0.05 + 's';
+      });
+    });
+  }
+
+  // Detect current section index from scroll position
+  function getCurrentSectionIndex() {
+    var scrollTop = scrollContainer.scrollTop;
+    var sectionHeight = window.innerHeight;
+    return Math.round(scrollTop / sectionHeight);
+  }
+
+  // Activate the first section on load
+  activateSection(0);
+
+  // On scroll, activate the current section
+  var ticking = false;
+  scrollContainer.addEventListener('scroll', function () {
+    if (!ticking) {
+      requestAnimationFrame(function () {
+        var idx = getCurrentSectionIndex();
+        activateSection(idx);
+        ticking = false;
+      });
+      ticking = true;
+    }
   });
 })();
 
