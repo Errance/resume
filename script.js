@@ -2,9 +2,9 @@
    Language Toggle
    ======================================== */
 (function () {
-  const html = document.documentElement;
-  const langBtns = document.querySelectorAll('[data-lang-btn]');
-  const langToggle = document.querySelector('.lang-toggle');
+  var html = document.documentElement;
+  var langBtns = document.querySelectorAll('[data-lang-btn]');
+  var langToggle = document.querySelector('.lang-toggle');
 
   function setLang(lang) {
     html.setAttribute('data-lang', lang);
@@ -15,6 +15,8 @@
         btn.classList.remove('active');
       }
     });
+    // Re-run typewriter for new language
+    startTypewriter();
     try {
       localStorage.setItem('site-lang', lang);
     } catch (e) {
@@ -39,6 +41,53 @@
     });
   }
 })();
+
+/* ========================================
+   Typewriter Effect for Tagline
+   ======================================== */
+var typewriterTimer = null;
+
+function startTypewriter() {
+  if (typewriterTimer) {
+    clearTimeout(typewriterTimer);
+    typewriterTimer = null;
+  }
+
+  var lang = document.documentElement.getAttribute('data-lang') || 'en';
+  var spans = document.querySelectorAll('.tagline .typewriter');
+
+  spans.forEach(function (span) {
+    var isVisible =
+      (lang === 'en' && span.classList.contains('en')) ||
+      (lang === 'zh' && span.classList.contains('zh'));
+
+    if (isVisible) {
+      var fullText = span.getAttribute('data-text') || '';
+      span.textContent = '';
+      var i = 0;
+
+      function typeChar() {
+        if (i < fullText.length) {
+          span.textContent = fullText.substring(0, i + 1);
+          i++;
+          typewriterTimer = setTimeout(typeChar, 35);
+        }
+      }
+
+      typeChar();
+    } else {
+      var text = span.getAttribute('data-text') || '';
+      span.textContent = text;
+    }
+  });
+}
+
+// Start on load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', startTypewriter);
+} else {
+  startTypewriter();
+}
 
 /* ========================================
    Navigation: Active section highlight
@@ -97,8 +146,9 @@
 
   if (!items.length) return;
 
-  items.forEach(function (item) {
+  items.forEach(function (item, index) {
     item.classList.add('fade-in');
+    item.style.transitionDelay = (index % 6) * 0.06 + 's';
   });
 
   var observer = new IntersectionObserver(
@@ -111,7 +161,7 @@
       });
     },
     {
-      rootMargin: '0px 0px -60px 0px',
+      rootMargin: '0px 0px -40px 0px',
       threshold: 0.1,
     }
   );
@@ -122,13 +172,86 @@
 })();
 
 /* ========================================
+   Tag Cascade Animation
+   ======================================== */
+(function () {
+  var tagContainers = document.querySelectorAll(
+    '.exp-tags, .project-tags, .skills-tags'
+  );
+
+  if (!tagContainers.length) return;
+
+  var observer = new IntersectionObserver(
+    function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) {
+          var tags = entry.target.querySelectorAll('.tag');
+          tags.forEach(function (tag, i) {
+            tag.classList.add('animate');
+            tag.style.animationDelay = i * 0.05 + 's';
+          });
+          observer.unobserve(entry.target);
+        }
+      });
+    },
+    {
+      rootMargin: '0px 0px -20px 0px',
+      threshold: 0.2,
+    }
+  );
+
+  tagContainers.forEach(function (container) {
+    container.querySelectorAll('.tag').forEach(function (tag) {
+      tag.style.opacity = '0';
+    });
+    observer.observe(container);
+  });
+})();
+
+/* ========================================
+   Strength Card 3D Tilt Effect
+   ======================================== */
+(function () {
+  var cards = document.querySelectorAll('.strength-card');
+
+  if (!cards.length) return;
+
+  // Only on desktop with hover capability
+  var mq = window.matchMedia('(min-width: 769px) and (hover: hover)');
+  if (!mq.matches) return;
+
+  cards.forEach(function (card) {
+    card.addEventListener('mousemove', function (e) {
+      var rect = card.getBoundingClientRect();
+      var x = e.clientX - rect.left;
+      var y = e.clientY - rect.top;
+      var centerX = rect.width / 2;
+      var centerY = rect.height / 2;
+
+      var rotateX = ((y - centerY) / centerY) * -3;
+      var rotateY = ((x - centerX) / centerX) * 3;
+
+      card.style.transform =
+        'perspective(600px) rotateX(' +
+        rotateX +
+        'deg) rotateY(' +
+        rotateY +
+        'deg) scale(1.02)';
+    });
+
+    card.addEventListener('mouseleave', function () {
+      card.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) scale(1)';
+    });
+  });
+})();
+
+/* ========================================
    Mouse Glow Effect (desktop only)
    ======================================== */
 (function () {
   var glow = document.querySelector('.mouse-glow');
   if (!glow) return;
 
-  // Only enable on non-touch, wider screens
   var mq = window.matchMedia('(min-width: 769px) and (hover: hover)');
 
   function handleMouseMove(e) {
