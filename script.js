@@ -15,24 +15,18 @@
         btn.classList.remove('active');
       }
     });
-    // Re-run typewriter for new language
     startTypewriter();
     try {
       localStorage.setItem('site-lang', lang);
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }
 
-  // Restore saved language
   try {
     var saved = localStorage.getItem('site-lang');
     if (saved === 'zh' || saved === 'en') {
       setLang(saved);
     }
-  } catch (e) {
-    // ignore
-  }
+  } catch (e) {}
 
   if (langToggle) {
     langToggle.addEventListener('click', function () {
@@ -82,7 +76,6 @@ function startTypewriter() {
   });
 }
 
-// Start on load
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', startTypewriter);
 } else {
@@ -91,12 +84,14 @@ if (document.readyState === 'loading') {
 
 /* ========================================
    Navigation: Active section highlight
+   (uses .right-panel as scroll root)
    ======================================== */
 (function () {
+  var scrollContainer = document.querySelector('.right-panel');
   var sections = document.querySelectorAll('.section');
   var navLinks = document.querySelectorAll('.nav-link');
 
-  if (!sections.length || !navLinks.length) return;
+  if (!scrollContainer || !sections.length || !navLinks.length) return;
 
   var observer = new IntersectionObserver(
     function (entries) {
@@ -114,6 +109,7 @@ if (document.readyState === 'loading') {
       });
     },
     {
+      root: scrollContainer,
       rootMargin: '-20% 0px -60% 0px',
       threshold: 0,
     }
@@ -123,7 +119,7 @@ if (document.readyState === 'loading') {
     observer.observe(section);
   });
 
-  // Smooth scroll on nav click
+  // Nav click: scroll within the right panel
   navLinks.forEach(function (link) {
     link.addEventListener('click', function (e) {
       e.preventDefault();
@@ -140,6 +136,7 @@ if (document.readyState === 'loading') {
    Scroll Fade-in Animation
    ======================================== */
 (function () {
+  var scrollContainer = document.querySelector('.right-panel');
   var items = document.querySelectorAll(
     '.exp-item, .project-card, .strength-card, .skills-group, .edu-item'
   );
@@ -161,6 +158,7 @@ if (document.readyState === 'loading') {
       });
     },
     {
+      root: scrollContainer,
       rootMargin: '0px 0px -40px 0px',
       threshold: 0.1,
     }
@@ -175,6 +173,7 @@ if (document.readyState === 'loading') {
    Tag Cascade Animation
    ======================================== */
 (function () {
+  var scrollContainer = document.querySelector('.right-panel');
   var tagContainers = document.querySelectorAll(
     '.exp-tags, .project-tags, .skills-tags'
   );
@@ -195,6 +194,7 @@ if (document.readyState === 'loading') {
       });
     },
     {
+      root: scrollContainer,
       rootMargin: '0px 0px -20px 0px',
       threshold: 0.2,
     }
@@ -216,7 +216,6 @@ if (document.readyState === 'loading') {
 
   if (!cards.length) return;
 
-  // Only on desktop with hover capability
   var mq = window.matchMedia('(min-width: 769px) and (hover: hover)');
   if (!mq.matches) return;
 
@@ -255,8 +254,7 @@ if (document.readyState === 'loading') {
     var title = item.querySelector('.exp-title, .project-title');
     if (!title) return;
 
-    title.addEventListener('click', function (e) {
-      // Don't toggle if user is selecting text
+    title.addEventListener('click', function () {
       if (window.getSelection().toString()) return;
 
       if (item.hasAttribute('data-expanded')) {
