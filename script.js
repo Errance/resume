@@ -246,6 +246,29 @@ if (document.readyState === 'loading') {
 })();
 
 /* ========================================
+   Collapse / Expand for Experience & Projects
+   ======================================== */
+(function () {
+  var collapsibles = document.querySelectorAll('[data-collapsible]');
+
+  collapsibles.forEach(function (item) {
+    var title = item.querySelector('.exp-title, .project-title');
+    if (!title) return;
+
+    title.addEventListener('click', function (e) {
+      // Don't toggle if user is selecting text
+      if (window.getSelection().toString()) return;
+
+      if (item.hasAttribute('data-expanded')) {
+        item.removeAttribute('data-expanded');
+      } else {
+        item.setAttribute('data-expanded', '');
+      }
+    });
+  });
+})();
+
+/* ========================================
    Mouse Glow Effect (desktop only)
    ======================================== */
 (function () {
