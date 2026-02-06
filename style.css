@@ -127,9 +127,16 @@ ul {
   min-width: 0;
   height: 100vh;
   overflow-y: auto;
-  scroll-snap-type: y proximity;
+  scroll-snap-type: y mandatory;
   scroll-behavior: smooth;
-  padding: 0 3rem 0 2.5rem;
+  padding: 0;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.right-panel::-webkit-scrollbar {
+  display: none;
 }
 
 /* ========================================
@@ -340,20 +347,34 @@ ul {
    Right Panel: Sections (scroll-snap pages)
    ======================================== */
 .section {
-  min-height: 100vh;
+  height: 100vh;
   scroll-snap-align: start;
+  scroll-snap-stop: always;
   position: relative;
-  padding: 5rem 0 3rem;
+  padding: 4rem 3rem 3rem 2.5rem;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  /* Hide inner scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.section::-webkit-scrollbar {
+  display: none;
+}
+
+/* Short sections: center content vertically */
+#about,
+#skills,
+#education {
   justify-content: center;
 }
 
-/* Long sections don't center -- content just flows */
+/* Long sections: start from top */
 #experience,
 #projects {
   justify-content: flex-start;
-  padding-top: 4rem;
 }
 
 .section-header-mobile {
@@ -785,7 +806,11 @@ ul {
   }
 
   .right-panel {
-    padding: 0 2rem 0 1.5rem;
+    padding: 0;
+  }
+
+  .section {
+    padding: 4rem 2rem 3rem 1.5rem;
   }
 
   .strengths-grid {
@@ -840,11 +865,14 @@ ul {
     overflow-y: visible;
     scroll-snap-type: none;
     padding: 1rem 1.5rem 2rem;
+    scrollbar-width: auto;
   }
 
   .section {
-    min-height: auto;
+    height: auto;
     scroll-snap-align: none;
+    scroll-snap-stop: normal;
+    overflow-y: visible;
     padding: 2rem 0;
   }
 
