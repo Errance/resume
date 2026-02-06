@@ -83,66 +83,29 @@ if (document.readyState === 'loading') {
 }
 
 /* ========================================
-   Navigation: Active section highlight
-   (uses .right-panel as scroll root)
+   Page Navigation Controller
+   (JS-based page transitions with custom animation)
    ======================================== */
 (function () {
   var scrollContainer = document.querySelector('.right-panel');
   var sections = document.querySelectorAll('.section');
   var navLinks = document.querySelectorAll('.nav-link');
 
-  if (!scrollContainer || !sections.length || !navLinks.length) return;
-
-  var observer = new IntersectionObserver(
-    function (entries) {
-      entries.forEach(function (entry) {
-        if (entry.isIntersecting) {
-          var id = entry.target.id;
-          navLinks.forEach(function (link) {
-            if (link.getAttribute('data-section') === id) {
-              link.classList.add('active');
-            } else {
-              link.classList.remove('active');
-            }
-          });
-        }
-      });
-    },
-    {
-      root: scrollContainer,
-      rootMargin: '-20% 0px -60% 0px',
-      threshold: 0,
-    }
-  );
-
-  sections.forEach(function (section) {
-    observer.observe(section);
-  });
-
-  // Nav click: scroll within the right panel
-  navLinks.forEach(function (link) {
-    link.addEventListener('click', function (e) {
-      e.preventDefault();
-      var targetId = this.getAttribute('data-section');
-      var target = document.getElementById(targetId);
-      if (target) {
-        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    });
-  });
-})();
-
-/* ========================================
-   Section-based Animations
-   (fade-in + tag cascade triggered per active page)
-   ======================================== */
-(function () {
-  var scrollContainer = document.querySelector('.right-panel');
-  var sections = document.querySelectorAll('.section');
-
   if (!scrollContainer || !sections.length) return;
 
-  // Prepare fade-in elements (hidden initially)
+  /* ---------- Config ---------- */
+  var ANIMATION_DURATION = 800;
+  var COOLDOWN = 900;
+  var SWIPE_THRESHOLD = 50;
+
+  var currentSection = 0;
+  var isAnimating = false;
+  var lastTransitionTime = 0;
+
+  /* ---------- Section activation (fade-in + tags) ---------- */
+  var activatedSections = {};
+
+  // Prepare fade-in elements
   var allFadeItems = document.querySelectorAll(
     '.exp-item, .project-card, .strength-card, .skills-group, .edu-item'
   );
@@ -160,9 +123,6 @@ if (document.readyState === 'loading') {
     });
   });
 
-  // Track which sections have been activated
-  var activatedSections = {};
-
   function activateSection(index) {
     if (activatedSections[index]) return;
     activatedSections[index] = true;
@@ -170,7 +130,6 @@ if (document.readyState === 'loading') {
     var section = sections[index];
     if (!section) return;
 
-    // Trigger fade-in for all items in this section
     var fadeItems = section.querySelectorAll('.fade-in');
     fadeItems.forEach(function (item, i) {
       item.style.transitionDelay = i * 0.06 + 's';
@@ -179,7 +138,6 @@ if (document.readyState === 'loading') {
       }, 80);
     });
 
-    // Trigger tag cascade for all tag containers in this section
     var tagContainers = section.querySelectorAll(
       '.exp-tags, .project-tags, .skills-tags'
     );
@@ -192,28 +150,191 @@ if (document.readyState === 'loading') {
     });
   }
 
-  // Detect current section index from scroll position
-  function getCurrentSectionIndex() {
-    var scrollTop = scrollContainer.scrollTop;
-    var sectionHeight = window.innerHeight;
-    return Math.round(scrollTop / sectionHeight);
+  /* ---------- Nav highlight ---------- */
+  function updateNavHighlight(index) {
+    if (!navLinks.length) return;
+    var id = sections[index] ? sections[index].id : '';
+    navLinks.forEach(function (link) {
+      if (link.getAttribute('data-section') === id) {
+        link.classList.add('active');
+      } else {
+        link.classList.remove('active');
+      }
+    });
   }
 
-  // Activate the first section on load
-  activateSection(0);
+  /* ---------- Easing ---------- */
+  function easeInOutCubic(t) {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
 
-  // On scroll, activate the current section
-  var ticking = false;
-  scrollContainer.addEventListener('scroll', function () {
-    if (!ticking) {
-      requestAnimationFrame(function () {
-        var idx = getCurrentSectionIndex();
-        activateSection(idx);
-        ticking = false;
-      });
-      ticking = true;
+  /* ---------- Scroll to section ---------- */
+  function scrollToSection(index) {
+    if (index < 0 || index >= sections.length) return;
+    if (isAnimating) return;
+
+    var now = Date.now();
+    if (now - lastTransitionTime < COOLDOWN) return;
+
+    if (index === currentSection) return;
+
+    isAnimating = true;
+    lastTransitionTime = now;
+    currentSection = index;
+
+    updateNavHighlight(index);
+    activateSection(index);
+
+    var start = scrollContainer.scrollTop;
+    var target = index * window.innerHeight;
+    var distance = target - start;
+
+    if (Math.abs(distance) < 1) {
+      isAnimating = false;
+      return;
+    }
+
+    var startTime = null;
+
+    function step(timestamp) {
+      if (!startTime) startTime = timestamp;
+      var progress = Math.min((timestamp - startTime) / ANIMATION_DURATION, 1);
+      var eased = easeInOutCubic(progress);
+
+      scrollContainer.scrollTop = start + distance * eased;
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        scrollContainer.scrollTop = target;
+        isAnimating = false;
+      }
+    }
+
+    requestAnimationFrame(step);
+  }
+
+  /* ---------- Wheel handler ---------- */
+  scrollContainer.addEventListener(
+    'wheel',
+    function (e) {
+      if (isAnimating) {
+        e.preventDefault();
+        return;
+      }
+
+      var section = sections[currentSection];
+      var hasInternalScroll = section.scrollHeight > section.clientHeight + 2;
+
+      if (hasInternalScroll) {
+        var atTop = section.scrollTop <= 1;
+        var atBottom =
+          section.scrollTop + section.clientHeight >= section.scrollHeight - 1;
+
+        if (e.deltaY > 0 && atBottom) {
+          e.preventDefault();
+          scrollToSection(currentSection + 1);
+        } else if (e.deltaY < 0 && atTop) {
+          e.preventDefault();
+          scrollToSection(currentSection - 1);
+        }
+        // Otherwise let section scroll internally
+      } else {
+        e.preventDefault();
+        if (e.deltaY > 0) {
+          scrollToSection(currentSection + 1);
+        } else if (e.deltaY < 0) {
+          scrollToSection(currentSection - 1);
+        }
+      }
+    },
+    { passive: false }
+  );
+
+  /* ---------- Touch handler ---------- */
+  var touchStartY = 0;
+
+  scrollContainer.addEventListener(
+    'touchstart',
+    function (e) {
+      touchStartY = e.touches[0].clientY;
+    },
+    { passive: true }
+  );
+
+  scrollContainer.addEventListener(
+    'touchend',
+    function (e) {
+      if (isAnimating) return;
+
+      var deltaY = touchStartY - e.changedTouches[0].clientY;
+      if (Math.abs(deltaY) < SWIPE_THRESHOLD) return;
+
+      var section = sections[currentSection];
+      var hasInternalScroll = section.scrollHeight > section.clientHeight + 2;
+
+      if (hasInternalScroll) {
+        var atTop = section.scrollTop <= 1;
+        var atBottom =
+          section.scrollTop + section.clientHeight >= section.scrollHeight - 1;
+
+        if (deltaY > 0 && atBottom) {
+          scrollToSection(currentSection + 1);
+        } else if (deltaY < 0 && atTop) {
+          scrollToSection(currentSection - 1);
+        }
+      } else {
+        if (deltaY > 0) {
+          scrollToSection(currentSection + 1);
+        } else if (deltaY < 0) {
+          scrollToSection(currentSection - 1);
+        }
+      }
+    },
+    { passive: true }
+  );
+
+  /* ---------- Keyboard handler ---------- */
+  document.addEventListener('keydown', function (e) {
+    if (isAnimating) return;
+    if (e.key === 'ArrowDown' || e.key === 'PageDown') {
+      e.preventDefault();
+      scrollToSection(currentSection + 1);
+    } else if (e.key === 'ArrowUp' || e.key === 'PageUp') {
+      e.preventDefault();
+      scrollToSection(currentSection - 1);
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      scrollToSection(0);
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      scrollToSection(sections.length - 1);
     }
   });
+
+  /* ---------- Nav click handler ---------- */
+  navLinks.forEach(function (link, i) {
+    link.addEventListener('click', function (e) {
+      e.preventDefault();
+      var targetId = this.getAttribute('data-section');
+      for (var j = 0; j < sections.length; j++) {
+        if (sections[j].id === targetId) {
+          scrollToSection(j);
+          break;
+        }
+      }
+    });
+  });
+
+  /* ---------- Resize: snap to current section ---------- */
+  window.addEventListener('resize', function () {
+    scrollContainer.scrollTop = currentSection * window.innerHeight;
+  });
+
+  /* ---------- Initialize ---------- */
+  scrollContainer.scrollTop = 0;
+  updateNavHighlight(0);
+  activateSection(0);
 })();
 
 /* ========================================
@@ -247,7 +368,8 @@ if (document.readyState === 'loading') {
     });
 
     card.addEventListener('mouseleave', function () {
-      card.style.transform = 'perspective(600px) rotateX(0deg) rotateY(0deg) scale(1)';
+      card.style.transform =
+        'perspective(600px) rotateX(0deg) rotateY(0deg) scale(1)';
     });
   });
 })();
